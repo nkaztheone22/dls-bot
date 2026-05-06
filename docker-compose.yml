@@ -1,0 +1,19 @@
+services:
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    volumes:
+      - ./auth_info:/workspace/artifacts/api-server/auth_info
+      - ./data:/workspace/artifacts/api-server/data
+
+  nginx:
+    build:
+      context: .
+      target: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
