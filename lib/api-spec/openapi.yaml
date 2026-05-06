@@ -1,0 +1,409 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: DLS WhatsApp Bot API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: bot
+    description: Bot connection and status
+  - name: settings
+    description: Bot settings management
+  - name: warnings
+    description: User warnings management
+  - name: activity
+    description: Bot activity log
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /bot/status:
+    get:
+      operationId: getBotStatus
+      tags: [bot]
+      summary: Get bot connection status and QR code if needed
+      responses:
+        "200":
+          description: Bot status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotStatus"
+
+  /bot/restart:
+    post:
+      operationId: restartBot
+      tags: [bot]
+      summary: Restart the bot connection
+      responses:
+        "200":
+          description: Restart initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
+  /bot/logout:
+    post:
+      operationId: logoutBot
+      tags: [bot]
+      summary: Logout bot and clear session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
+  /bot/pair:
+    post:
+      operationId: requestPairingCode
+      tags: [bot]
+      summary: Request a pairing code for a phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PairRequest"
+      responses:
+        "200":
+          description: Pairing code issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PairResult"
+        "400":
+          description: Invalid request or bot already connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get current bot settings
+      responses:
+        "200":
+          description: Current settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSettings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update bot settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotSettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSettings"
+
+  /settings/badwords:
+    post:
+      operationId: addBadword
+      tags: [settings]
+      summary: Add a word to the banned list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BadwordBody"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSettings"
+    delete:
+      operationId: removeBadword
+      tags: [settings]
+      summary: Remove a word from the banned list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BadwordBody"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSettings"
+
+  /warnings:
+    get:
+      operationId: getWarnings
+      tags: [warnings]
+      summary: Get all active warnings
+      responses:
+        "200":
+          description: List of user warnings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WarningEntry"
+    delete:
+      operationId: clearAllWarnings
+      tags: [warnings]
+      summary: Clear all warnings
+      responses:
+        "200":
+          description: All warnings cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
+  /warnings/{warningKey}:
+    delete:
+      operationId: deleteWarning
+      tags: [warnings]
+      summary: Clear warnings for a specific user in a group
+      parameters:
+        - name: warningKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Warning cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
+  /activity:
+    get:
+      operationId: getActivity
+      tags: [activity]
+      summary: Get recent bot activity log
+      responses:
+        "200":
+          description: Activity log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEntry"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [activity]
+      summary: Get bot statistics summary
+      responses:
+        "200":
+          description: Stats summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    BotStatus:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        qr:
+          type: string
+          nullable: true
+        pairingCode:
+          type: string
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+        uptime:
+          type: number
+          nullable: true
+      required:
+        - connected
+
+    PairRequest:
+      type: object
+      properties:
+        phoneNumber:
+          type: string
+          description: Phone number in international format without + (e.g. 27821234567)
+      required:
+        - phoneNumber
+
+    PairResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        code:
+          type: string
+          nullable: true
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    ActionResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    BotSettings:
+      type: object
+      properties:
+        antilink:
+          type: boolean
+        antiword:
+          type: boolean
+        welcome:
+          type: boolean
+        warnKick:
+          type: integer
+        badwords:
+          type: array
+          items:
+            type: string
+      required:
+        - antilink
+        - antiword
+        - welcome
+        - warnKick
+        - badwords
+
+    BotSettingsUpdate:
+      type: object
+      properties:
+        antilink:
+          type: boolean
+        antiword:
+          type: boolean
+        welcome:
+          type: boolean
+        warnKick:
+          type: integer
+
+    BadwordBody:
+      type: object
+      properties:
+        word:
+          type: string
+      required:
+        - word
+
+    WarningEntry:
+      type: object
+      properties:
+        key:
+          type: string
+        groupId:
+          type: string
+        userId:
+          type: string
+        count:
+          type: integer
+        lastWarn:
+          type: number
+      required:
+        - key
+        - groupId
+        - userId
+        - count
+        - lastWarn
+
+    ActivityEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: number
+        type:
+          type: string
+          enum: [link_deleted, word_warned, user_kicked, command_used, connected, disconnected]
+        groupId:
+          type: string
+        userId:
+          type: string
+        detail:
+          type: string
+      required:
+        - id
+        - timestamp
+        - type
+        - groupId
+        - userId
+        - detail
+
+    BotStats:
+      type: object
+      properties:
+        totalWarnings:
+          type: integer
+        linksDeleted:
+          type: integer
+        wordsWarned:
+          type: integer
+        usersKicked:
+          type: integer
+        commandsUsed:
+          type: integer
+        activeGroups:
+          type: integer
+      required:
+        - totalWarnings
+        - linksDeleted
+        - wordsWarned
+        - usersKicked
+        - commandsUsed
+        - activeGroups
